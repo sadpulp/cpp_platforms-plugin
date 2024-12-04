@@ -7,12 +7,17 @@
 AMinion::AMinion(): IsInUse(false), Health(100.f),
 DoStuffInterval(1.f), TimeSinceLastDoStuff(0.f)
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
+	RootComponent = CapsuleComponent;
+
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	MeshComponent->SetupAttachment(RootComponent);
+
+	CapsuleComponent->OnComponentBeginOverlap.AddDynamic(this, &AMinion::OnOverlapBegin);
 }
 
-// Called when the game starts or when spawned
 void AMinion::BeginPlay()
 {
 	Super::BeginPlay();
@@ -24,10 +29,23 @@ void AMinion::DoStuff()
 	UE_LOG(LogTemp, Warning, TEXT("Doing stuff"));
 }
 
-// Called every frame
+void AMinion::OnDeath()
+{
+	
+}
+
+void AMinion::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	Kill();
+}
+
 void AMinion::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (IsInUse == false) return;
+	
 	
 	if (TimeSinceLastDoStuff >= DoStuffInterval)
 	{
@@ -38,5 +56,13 @@ void AMinion::Tick(float DeltaTime)
 	{
 		TimeSinceLastDoStuff += DeltaTime;
 	}
+}
+
+void AMinion::Kill()
+{
+	SetActorHiddenInGame(true);
+	IsInUse = false;
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, (TEXT("%s I HAVE BEEN KILLED!! AAAAAAAH"), *GetName()));
+	OnDeath();
 }
 
